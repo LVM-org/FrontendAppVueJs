@@ -4,26 +4,10 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        primaryPurple: "#3219AF",
-        primaryBlue: "#197DFA",
-        primaryOrange: "#FA9632",
-        primaryGreen: "#4BAF7D",
-        primaryRed: "#E1324B",
-        primaryPurplePink: "#AF19C8",
-        primaryPink: "#FF4BC8",
-        bodyBlack: "#413C46",
-        ligthGray: "#F1F6FB",
-        grayColor: "#78828C",
-        backgroundGray: "#f1f6fb",
-        fadedPurple: "#EFF4F9",
-        deepGray: "#141618",
-        lightBorderColor: "#E1E6EB",
-        skyBlue: "#E6F5FF",
-        lightGrayVaraint: "#F1F6FA",
+        
       },
       boxShadow: {
-        custom: "0px 4px 4px rgba(8, 0, 24, 0.05)",
-        itemBox: "0px 16px 12px rgba(130, 130, 140, 0.1)",
+         
       },
     },
     screens: {
