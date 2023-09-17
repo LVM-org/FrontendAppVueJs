@@ -1,4 +1,4 @@
-# vue-typescript-template
+# FrontendAppVueJs
 
 
 This project extends VueCLI default typescript template. The goal is to provide a quick and simple vuejs template that includes the common plugins and folder structure needed to build a single-page app of any size or requirement. This allows you to spend less time on project setup and more time on the business logic of the application.
@@ -8,8 +8,6 @@ This project extends VueCLI default typescript template. The goal is to provide 
 
 This template includes the following features out of the box: 
 - Automatic Route Discovery (similar to NuxtJS) 
-- Automatic Layout System (Similar to NuxtJS)
-- REST API modules that are extensible (built with Axios)
 - Vue-meta integration 
 - TailwindCSS integration (Optional)
 - An organized folder structure.
@@ -19,7 +17,7 @@ This template includes the following features out of the box:
 
 Clone the repository into a new folder (e.g "my-app")
 ```
-git clone https://github.com/Doctordrayfocus/vue-typescript-template.git .
+git clone https://github.com/LVM-org/FrontendAppVueJs.git .
 ```
 Change directory
 ```
@@ -43,6 +41,128 @@ This folder contains your project assets that must be exposed to the public. The
 
 ### /src
 This folder contains the entire codebase for your project. You can add new folders here to expand the project folder structure.
+
+### /src/main.ts
+This file is the entry point for your app. It is where you import and configure your UI Components and Frontend Logic packages. 
+
+#### Configure Frontend Logic
+
+To get started, import the `Logic` variable from the package. Next, register the `Logic.Common.preFetchRouteData` method as global middleware so the package can take care of data prefetching. Set the `router` and `route` in the Logic package so it can handle routing on behalf of the application. Finally, set the backend `API URL`.
+
+```ts
+/src/main.ts
+
+import { Logic } from 'app-logic'
+
+
+const router = Promise.all(routes).then((routes) => {
+  const router = createRouter({
+    history: createWebHistory(),
+    routes,
+  })
+
+  router.beforeEach((to, from, next) => {
+    const toRouter: any = to
+    const fromRouter: any = from
+    // setup middlewares using the logic package
+    return Logic.Common.preFetchRouteData(toRouter, next, fromRouter) 
+  })
+
+  return router
+})
+
+const init = async () => {
+  createApp({
+    components: {
+      App,
+    },
+    setup() {
+      const router: any = useRouter()
+      const route: any = useRoute()
+
+      // setup logic route and routers
+      Logic.Common.SetRouter(router)
+      Logic.Common.SetRoute(route)
+
+      // Setup backend api url
+      Logic.Common.SetApiUrl(process.env.VUE_APP_API_URL || '')
+
+      ....
+    },
+  })
+    .component('dashboard-layout', DashboardLayout)
+    .use(await router)
+    .use(store, key)
+    .use(createMetaManager())
+    .mount('#app')
+}
+
+init()
+```
+
+#### Configure UI Component
+First, import `SetFrontendLogic` from the package, and use it to inject the frontend logic instance into UI Component. The reason this is done is to ensure that only one instance of the `Frontend Logic` is initiated during the life cycle of the application.
+
+```ts
+/src/main.ts
+
+import { SetFrontendLogic } from 'app-ui-components'
+
+
+// UI component css style
+import 'app-ui-components/dist/library.min.css'
+
+const init = async () => {
+  createApp({
+    components: {
+      App,
+    },
+    setup() {
+       ...
+      // set ui frontend logic
+      SetFrontendLogic(Logic)
+       ... 
+    },
+  })
+    .component('dashboard-layout', DashboardLayout)
+    .use(await router)
+    .use(store, key)
+    .use(createMetaManager())
+    .mount('#app')
+}
+
+init()
+
+```
+
+#### Connecting the Frontend Logic reactivity to VueJs reactivity.
+The initiated instance of the `Fronend Logic`, runs outside of Vue's reactivity system. So changes to properties in the Logic do not get detected in the Vue App. To address this, the `watchProperty()` method available on all Modules in the Logic, enables you to connect or link a Vue reactive variable to a property in a Frontend Logic module, as shown below.
+
+```
+import { Logic } from 'app-logic'
+
+
+export default defineComponent({
+  components: {},
+  setup() {
+
+      // initiate vue reactive variable
+     const AuthUser = ref(Logic.Auth.AuthUser)
+
+     // Connect the reactive variable to the Logic property - AuthUser on component mount
+      onMounted(() => {
+        Logic.Auth.watchProperty("AuthUser", AuthUser)
+      })
+
+      // Now the variable AuthUser will get updated anytime the property - AuthUser - changes
+      watch(AuthUser, () => {
+         console.log('I changed', AuthUser.value)
+      })
+
+    return {};
+  },
+});
+```
 
 ### /src/assets
 
@@ -82,15 +202,43 @@ To make a new layout, place a new file in the layout folder, such as "Sample," a
   </div>
 </template>
 ```
-When you add a file, it will be automatically discovered. You can learn more about how the layout discovery system works by clicking [here](https://itnext.io/vue-tricks-smart-layouts-for-vuejs-5c61a472b69b).
+
+
+#### Registering a layout
+To register a layout, add it as a global component in the `main.ts` file
+```ts
+/src/main.ts
+
+import DashboardLayout from './layouts/Dashboard.vue'
+
+const init = async () => {
+  createApp({
+    components: {
+      App,
+    },
+    setup() {
+      const router: any = useRouter()
+      const route: any = useRoute()
+
+       ....
+    },
+  })
+    .component('dashboard-layout', DashboardLayout)
+    .use(await router)
+    .use(store, key)
+    .use(createMetaManager())
+    .mount('#app')
+}
+...
+```
 
 #### Use a layout
-Add a layout attribute to your vue script to use it in a page.
+To use a layout, wrap the component it around your page.
 ```vue
 <template>
-  <div>
+  <dashboard-layout>
     <h1>This is the sample index page</h1>
-  </div>
+  </dashboard-layout>
 </template>
 
 <script lang="ts">
@@ -98,7 +246,6 @@ import { defineComponent } from "vue";
 import { useMeta } from "vue-meta";
 export default defineComponent({
   name: "SampleIndexPage",
-  layout: "Sample", // add the layout file name here
   setup() {
     useMeta({
       title: "Sample Index Page",
@@ -108,6 +255,7 @@ export default defineComponent({
 });
 </script>
 ```
+
 
 ### /scr/modules
 
@@ -123,56 +271,7 @@ export type SampleModel = {
 
 These projects handle routing automatically. The source code for this is contained in the folder. The automatic routing is dependent on the "views" folder and handles routing similarly to NuxtJS. The 'index.vue' file in the views folder is the default (home) route, while all other folders in the file become sub-routes. The routing system also supports dynamic routing. Please read more about how the routing works [here](https://itnext.io/vue-tricks-smart-router-for-vuejs-93c287f46b50).
 
-### /scr/services
 
-This handles Rest API requests. It is Axios-based and includes two extensible modules, `ModelService.ts` and `ReadOnlyService.ts`.
-The service modules assume that your application API is organized into separate domains with similar URL prefixes. For example, all API requests for the "Users" domain begin with "/users," whereas those for the "Products" domain begin with "/products."
-
-#### Create a new api service
-You can extend either ReadOnlyService or ModelService to create a new api service for each project domain. The ReadOnlyService supports only read api requests (get, fetch, search), whereas the ModelServic supports both read and write api requests (get, fetch, search, update, create, delete). As an example,
-```ts
-// SampleApiService.ts
-import { AxiosResponse } from "axios";
-import { ReadOnlyApiService } from "./common/ReadOnlyService";
-
-export class SampleApiService extends ReadOnlyApiService {
-  constructor() {
-    // this is equivalent to your base_url/sample
-    super("sample");
-  }
-
-  public async customRequest(
-    data = {}
-  ): Promise<AxiosResponse<unknown, unknown>> {
-    try {
-      const response: AxiosResponse = await this.axiosInstance.post(
-        this.getUrl() + "/login",
-        data
-      );
-
-      return response;
-    } catch (err) {
-      this.handleErrors(err);
-      // you can handle request specific error here
-      throw err;
-    }
-  }
-}
-```
-Once the service is created, add it to the global api module in `api.ts`
-```ts
-import { SampleApiService } from "./SampleApiService";
-
-export const $api = {
-  sample: new SampleApiService(),
-};
-```
-To use the api service,
-```ts
-$api.sample.customRequest().then((response) => {
-   // your response here
-})
-```
 
 ### /src/composable
 
@@ -227,6 +326,7 @@ export const useSample = {
 ### /src/store
 
 This folder is where you keep track of the state of your application. By default, this project uses vue-store. However, you can switch to Pinia, which is the recommended state management package for Vue 3.
+
 ### /src/views
 
 This folder houses all of your app pages. 
@@ -239,7 +339,5 @@ This is the most important part of your application. In most cases, no changes t
 ### /src/main.ts
 This is your Vue application's entry point. You can remove or add new global plugins to your application from this file.
 
-## Facing any issue?
-If you have any questions or need more information, please contact me on Twitter [@drayfocus](https://twitter.com/drayfocus) or via email at drayfocus@gmail.com. 
 
 ## Happy Building!
