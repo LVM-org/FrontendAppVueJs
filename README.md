@@ -138,7 +138,7 @@ init()
 #### Connecting the Frontend Logic reactivity to VueJs reactivity.
 The initiated instance of the `Fronend Logic`, runs outside of Vue's reactivity system. So changes to properties in the Logic do not get detected in the Vue App. To address this, the `watchProperty()` method available on all Modules in the Logic, enables you to connect or link a Vue reactive variable to a property in a Frontend Logic module, as shown below.
 
-```
+```ts
 import { Logic } from 'app-logic'
 
 
